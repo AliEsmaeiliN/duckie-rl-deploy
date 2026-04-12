@@ -14,6 +14,7 @@ dt-launchfile-init
 
 # launching app
 export PYTHONPATH="${PYTHONPATH}:${DT_REPO_PATH}/packages"
+export DEBUG_MODE=true
 dt-exec python3 "${DT_REPO_PATH}/packages/solution.py"
 
 

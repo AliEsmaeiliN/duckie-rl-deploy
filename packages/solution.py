@@ -1,22 +1,25 @@
 #!/usr/bin/env python3
 import os
+import sys
 import cv2
 import numpy as np
-import rospy
-from sensor_msgs.msg import CompressedImage
-from duckietown_msgs.msg import WheelsCmdStamped
+import rospy # pyright: ignore[reportMissingImports]
+from sensor_msgs.msg import CompressedImage # pyright: ignore[reportMissingImports]
+from duckietown_msgs.msg import WheelsCmdStamped # pyright: ignore[reportMissingImports]
 from packages.agent import DuckiebotAgent
 from packages.debug_bot import run_remote_debug
 
 class RLNode:
-    def __init__(self):
+    def __init__(self, algo="sac"):
         rospy.init_node('rl_agent_node')
         self.veh = os.environ.get('VEHICLE_NAME', 'duckie1nav')
-        model_full_path = os.path.join(os.environ.get("DT_REPO_PATH"), "assets/sac_Final.cleanrl_model")
+
+        repo_path = os.environ.get("DT_REPO_PATH", "/solution")
+        model_full_path = os.path.join(repo_path, f"assets/models/{algo}_Final.cleanrl_model")
         
         self.agent = DuckiebotAgent(
             model_path=model_full_path, 
-            algo_type="sac"
+            algo_type=algo
         )
         
         self.wheel_pub = rospy.Publisher(f"/{self.veh}/wheels_driver_node/wheels_cmd", WheelsCmdStamped, queue_size=1)
@@ -42,5 +45,10 @@ class RLNode:
         self.wheel_pub.publish(stop_msg)
 
 if __name__ == '__main__':
-    node = RLNode()
+    algo_arg = "sac"
+    if "--algo" in sys.argv:
+        idx = sys.argv.index("--algo")
+        algo_arg = sys.argv[idx + 1]
+
+    node = RLNode(algo=algo_arg)
     rospy.spin()
