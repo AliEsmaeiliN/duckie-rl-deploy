@@ -1,7 +1,7 @@
 # parameters
-ARG REPO_NAME="<REPO_NAME_HERE>"
-ARG DESCRIPTION="<DESCRIPTION_HERE>"
-ARG MAINTAINER="<YOUR_FULL_NAME> (<YOUR_EMAIL_ADDRESS>)"
+ARG REPO_NAME="duckie-rl-deploy"
+ARG DESCRIPTION="Sim2Real SAC/TD3 Inference for DB21J"
+ARG MAINTAINER="Ali Esmaeili (ali.n.esmaeilinasab@gmail.com)"
 # pick an icon from: https://fontawesome.com/v4.7.0/icons/
 ARG ICON="cube"
 
@@ -62,6 +62,7 @@ RUN dt-pip3-install "${REPO_PATH}/dependencies-py3.*"
 
 # copy the source code
 COPY ./packages "${REPO_PATH}/packages"
+COPY ./assets "${REPO_PATH}/assets"
 
 # install launcher scripts
 COPY ./launchers/. "${LAUNCH_PATH}/"

@@ -1,47 +1,54 @@
-# Template: template-basic
+# 🐥 duckie-rl-deploy: Sim2Real Inference
+### **Deployment Suite for DB21J Duckiebots**
 
-This template provides a boilerplate repository for developing non-ROS software
-in Duckietown.
+---
 
-**NOTE:** If you want to develop software that uses ROS, check out
-[this template](https://github.com/duckietown/template-ros).
+## 🎯 **Core Objective**
+This repository is the dedicated **inference engine** for transferring SAC/TD3 Reinforcement Learning policies from simulation to the physical **Duckietown DB21J**. It bridges the "Reality Gap" by precisely mirroring the simulation's data processing pipeline.
 
+---
 
-## How to use it
+## 🏗️ **Repository Architecture**
+Standardized Duckietown structure for hardware-aware builds:
 
-### 1. Fork this repository
+* **`assets/`**: Model weight storage (`sac_Final.cleanrl_model`).
+* **`packages/`**: Core inference modules:
+    * **`solution.py`**: ROS Node managing Camera Subscriptions and Wheel Command publishing.
+    * **`agent.py`**: Vision pipeline (cropping/resizing) and 4-frame temporal stacking.
+    * **`models.py`**: ImpalaCNN and Actor network definitions.
+    * **`debug_bot.py`**: Remote telemetry for real-time visualization on a laptop.
+* **`launchers/`**: Entry point scripts for the `dts` runtime.
 
-Use the fork button in the top-right corner of the github page to fork this template repository.
+---
 
+## 🛠️ **Sim2Real Alignment Features**
+Designed to ensure simulation-to-reality parity:
 
-### 2. Create a new repository
+* **Vision Fidelity**: Replicates the 25% top-crop and 84x84 resize from training wrappers.
+* **Temporal Consistency**: 4-frame `deque` buffer matching the training `FrameStackObservation`.
+* **Kinematic Mapping**: Translates RL outputs $[v, \omega]$ into physical PWM duty cycles $[u_l, u_r]$ for DB21J motors.
 
-Create a new repository on github.com while
-specifying the newly forked template repository as
-a template for your new repository.
+---
 
+## 🚀 **Quick Start Commands**
 
-### 3. Define dependencies
+### **1. Build for ARM64**
+Perform cross-compilation on your laptop for the Jetson Nano:
+```bash
+dts devel build -f
+```
 
-List the dependencies in the files `dependencies-apt.txt` and
-`dependencies-py3.txt` (apt packages and pip packages respectively).
+### **2. Deploy to Robot**
+Run the container on the physical robot with hardware permissions:
+```bash
+dts devel run -H <robot_name>.local
+```
 
+---
 
-### 4. Place your code
-
-Place your code in the directory `/packages/` of
-your new repository.
-
-
-### 5. Setup launchers
-
-The directory `/launchers` can contain as many launchers (launching scripts)
-as you want. A default launcher called `default.sh` must always be present.
-
-If you create an executable script (i.e., a file with a valid shebang statement)
-a launcher will be created for it. For example, the script file 
-`/launchers/my-launcher.sh` will be available inside the Docker image as the binary
-`dt-launcher-my-launcher`.
-
-When launching a new container, you can simply provide `dt-launcher-my-launcher` as
-command.
+## 📦 **Technical Dependencies**
+Optimized Duckietown binaries for **daffy**:
+* **`torch==2.4.1`**
+* **`torchvision==0.19.1`**
+* **`numpy==1.23.5`**
+* **`opencv-python-headless==4.10.0.84`**

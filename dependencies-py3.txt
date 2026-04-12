@@ -1,2 +1,4 @@
-# LIST YOUR PYTHON3 PACKAGES HERE
-# NOTE: only place non-Duckietown libraries here; pin versions only if necessary
+torch==2.4.1
+torchvision==0.19.1
+numpy==1.23.5
+opencv-python-headless==4.10.0.84
