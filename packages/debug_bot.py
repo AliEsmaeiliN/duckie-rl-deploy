@@ -4,7 +4,7 @@ import struct
 import cv2
 import numpy as np
 
-LAPTOP_IP = "192.168.1.110" 
+LAPTOP_IP = "192.168.0.51" 
 PORT = 8089
 
 # Global socket to keep connection alive across steps
