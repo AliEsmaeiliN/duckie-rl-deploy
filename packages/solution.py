@@ -31,6 +31,9 @@ class RLNode:
         rospy.on_shutdown(self.emergency_stop)
 
     def callback(self, msg):
+        if rospy.is_shutdown():
+            return
+        
         np_arr = np.frombuffer(msg.data, np.uint8)
         obs = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
@@ -42,12 +45,15 @@ class RLNode:
             self.write("wheels", wheel_cmds)
 
     def write(self, topic, data):
-        if topic == 'wheels':
-            cmd_msg = WheelsCmdStamped()
-            cmd_msg.header.stamp = rospy.Time.now()
-            cmd_msg.vel_left = data[0]
-            cmd_msg.vel_right = data[1]
-            self.wheel_pub.publish(cmd_msg)
+        if topic == 'wheels' and not rospy.is_shutdown():
+            try:
+                cmd_msg = WheelsCmdStamped()
+                cmd_msg.header.stamp = rospy.Time.now()
+                cmd_msg.vel_left = data[0]
+                cmd_msg.vel_right = data[1]
+                self.wheel_pub.publish(cmd_msg)
+            except (rospy.ROSException, rospy.ROSInterruptException):
+                pass
             
     def emergency_stop(self):
         rospy.loginfo("Shutting down... sending stop command to wheels.")
