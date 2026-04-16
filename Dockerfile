@@ -10,7 +10,7 @@ ARG ICON="cube"
 ARG ARCH
 ARG DISTRO=daffy
 ARG DOCKER_REGISTRY=docker.io
-ARG BASE_IMAGE=dt-core
+ARG BASE_IMAGE=dt-ros-commons
 ARG BASE_TAG=${DISTRO}-${ARCH}
 ARG LAUNCHER=default
 
@@ -36,7 +36,7 @@ ARG TARGETVARIANT
 RUN dt-build-env-check "${REPO_NAME}" "${MAINTAINER}" "${DESCRIPTION}"
 
 # define/create repository path
-ARG REPO_PATH="${SOURCE_DIR}/${REPO_NAME}"
+ARG REPO_PATH="${CATKIN_WS_DIR}/src/${REPO_NAME}"
 ARG LAUNCH_PATH="${LAUNCH_DIR}/${REPO_NAME}"
 RUN mkdir -p "${REPO_PATH}" "${LAUNCH_PATH}"
 WORKDIR "${REPO_PATH}"
@@ -57,13 +57,18 @@ RUN dt-apt-install ${REPO_PATH}/dependencies-apt.txt
 # install python3 dependencies
 ARG PIP_INDEX_URL="https://pypi.org/simple"
 ENV PIP_INDEX_URL=${PIP_INDEX_URL}
-ENV PIP_DEFAULT_TIMEOUT=600
 COPY ./dependencies-py3.* "${REPO_PATH}/"
+ENV PIP_DEFAULT_TIMEOUT=600
 RUN dt-pip3-install "${REPO_PATH}/dependencies-py3.*"
 
 # copy the source code
 COPY ./packages "${REPO_PATH}/packages"
 COPY ./assets "${REPO_PATH}/assets"
+
+# build packages
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
+  catkin build \
+    --workspace ${CATKIN_WS_DIR}/
 
 # install launcher scripts
 COPY ./launchers/. "${LAUNCH_PATH}/"

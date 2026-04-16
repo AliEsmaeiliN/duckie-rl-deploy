@@ -7,8 +7,8 @@ import rospy
 from duckietown.dtros import DTROS, NodeType # pyright: ignore[reportMissingImports]
 from sensor_msgs.msg import CompressedImage # pyright: ignore[reportMissingImports]
 from duckietown_msgs.msg import WheelsCmdStamped # pyright: ignore[reportMissingImports]
-from agent import DuckiebotAgent
-from debug_bot import run_remote_debug
+from rl_package.agent import DuckiebotAgent
+from rl_package.debug_bot import run_remote_debug
 
 class RLNode(DTROS):
     def __init__(self, node_name, algo="sac"):
