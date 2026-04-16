@@ -7,6 +7,7 @@ import rospy
 from duckietown.dtros import DTROS, NodeType # pyright: ignore[reportMissingImports]
 from sensor_msgs.msg import CompressedImage # pyright: ignore[reportMissingImports]
 from duckietown_msgs.msg import WheelsCmdStamped # pyright: ignore[reportMissingImports]
+from cv_bridge import CvBridge
 from rl_package.agent import DuckiebotAgent
 from rl_package.debug_bot import run_remote_debug
 
@@ -14,6 +15,7 @@ class RLNode(DTROS):
     def __init__(self, node_name, algo="sac"):
         super(RLNode, self).__init__(node_name=node_name, node_type=NodeType.CONTROL)
         
+        self.bridge = CvBridge()
         self.veh = os.environ.get('VEHICLE_NAME', 'duckie1nav')
 
         self.debug_mode = os.environ.get("DEBUG_MODE", "false").lower() == "true"
@@ -33,8 +35,7 @@ class RLNode(DTROS):
 
     def callback(self, msg):
         
-        np_arr = np.frombuffer(msg.data, np.uint8)
-        self.last_obs = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        self.last_obs = self.bridge.compressed_imgmsg_to_cv2(msg)
 
     def run(self):
         rate = rospy.Rate(7.5)

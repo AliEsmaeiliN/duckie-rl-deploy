@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import collections
 import cv2
+import yaml
 
 from rl_package.models import SACActor, TD3Actor
 
@@ -29,13 +30,38 @@ class DuckiebotAgent:
         self.c = 1 if grayscale else 3
         self.frames = collections.deque(maxlen=frame_stack)
 
+        self.veh = "duckie1nav" # get from env
+        self.map_x, self.map_y = self._load_calibration()
+
+    def _load_calibration(self):
+        """Loads intrinsic parameters and prepares cv2 maps."""
+        calib_path = f"/data/config/calibrations/camera_intrinsic/{self.veh}.yaml"
+        
+        with open(calib_path, 'r') as f:
+            calib_data = yaml.safe_load(f)
+            
+        intrinsics = np.array(calib_data['camera_matrix']['data']).reshape(3, 3)
+        distortion = np.array(calib_data['distortion_coefficients']['data'])
+        img_width = calib_data['image_width']
+        img_height = calib_data['image_height']
+
+        new_camera_matrix, _ = cv2.getOptimalNewCameraMatrix(
+            intrinsics, distortion, (img_width, img_height), 0, (img_width, img_height)
+        )
+        map_x, map_y = cv2.initUndistortRectifyMap(
+            intrinsics, distortion, None, new_camera_matrix, (img_width, img_height), cv2.CV_32FC1
+        )
+        return map_x, map_y
+
     def preprocess(self, obs_rgb):
         """
         Replicates the Sim2Real vision pipeline: 
         """
         
+        rectified_img = cv2.remap(obs_rgb, self.map_x, self.map_y, cv2.INTER_LINEAR)
+
         # ResizeWrapper
-        img = cv2.resize(obs_rgb, (160, 120), interpolation=cv2.INTER_LINEAR)
+        img = cv2.resize(rectified_img, (160, 120), interpolation=cv2.INTER_LINEAR)
         
         # CropResizeWrapper
         h, w = img.shape[:2]
