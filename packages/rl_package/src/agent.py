@@ -3,7 +3,7 @@ import numpy as np
 import collections
 import cv2
 
-from packages.models import SACActor, TD3Actor
+from models import SACActor, TD3Actor
 
 class DuckiebotAgent:
     def __init__(self, model_path, algo_type="sac", grayscale=True, frame_stack=4):

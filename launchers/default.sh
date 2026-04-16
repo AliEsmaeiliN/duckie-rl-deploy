@@ -12,10 +12,7 @@ dt-launchfile-init
 # NOTE: Use the variable DT_REPO_PATH to know the absolute path to your code
 # NOTE: Use `dt-exec COMMAND` to run the main process (blocking process)
 
-# launching app
-export PYTHONPATH="${PYTHONPATH}:${DT_REPO_PATH}"
-export DEBUG_MODE=true
-dt-exec python3 "${DT_REPO_PATH}/packages/solution.py"
+rosrun rl_package solution.py
 
 
 # ----------------------------------------------------------------------------
