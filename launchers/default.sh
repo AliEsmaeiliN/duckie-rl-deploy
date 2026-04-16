@@ -12,7 +12,7 @@ dt-launchfile-init
 # NOTE: Use the variable DT_REPO_PATH to know the absolute path to your code
 # NOTE: Use `dt-exec COMMAND` to run the main process (blocking process)
 export DEBUG_MODE=true
-rosrun rl_package solution.py
+rosrun rl_package rl_node.py
 
 
 # ----------------------------------------------------------------------------

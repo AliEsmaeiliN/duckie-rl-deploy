@@ -7,7 +7,7 @@ import rospy
 from duckietown.dtros import DTROS, NodeType # pyright: ignore[reportMissingImports]
 from sensor_msgs.msg import CompressedImage # pyright: ignore[reportMissingImports]
 from duckietown_msgs.msg import WheelsCmdStamped # pyright: ignore[reportMissingImports]
-from cv_bridge import CvBridge
+from cv_bridge import CvBridge # pyright: ignore[reportMissingImports]
 from rl_package.agent import DuckiebotAgent
 from rl_package.debug_bot import run_remote_debug
 
@@ -72,6 +72,6 @@ if __name__ == '__main__':
         idx = sys.argv.index("--algo")
         algo_arg = sys.argv[idx + 1]
 
-    node = RLNode(node_name='rl_agent_node', algo=algo_arg)
+    node = RLNode(node_name='rl_node', algo=algo_arg)
     node.run()
     rospy.spin()

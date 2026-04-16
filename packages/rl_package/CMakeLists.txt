@@ -11,6 +11,6 @@ catkin_package()
 catkin_python_setup()
 
 catkin_install_python(PROGRAMS
-  src/solution.py
+  src/rl_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
