@@ -22,7 +22,7 @@ class DuckiebotAgent:
         else:
             raise ValueError(f"Unknown algo type: {self.algo_type}")
 
-        checkpoint = torch.load(model_path, map_location=self.device)
+        checkpoint = torch.load(model_path, map_location=self.device, weights_only=True)
         self.actor.load_state_dict(checkpoint['actor_state_dict'])
         self.actor.eval()
 
