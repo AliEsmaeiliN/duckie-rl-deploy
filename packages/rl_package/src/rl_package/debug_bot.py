@@ -25,11 +25,12 @@ def run_remote_debug(agent, context, observation):
     view_img = view_img.astype(np.uint8) 
 
     action = agent.get_action(observation)
+    action = [action[0], - action[1]]
     wheel_cmds = agent.postprocess_kinematics(action)
 
     data = {
         "image": view_img, 
-        "action": action.tolist(),
+        "action": action,
         "motors": wheel_cmds
     }
     

@@ -3,6 +3,7 @@ import numpy as np
 import collections
 import cv2
 import yaml
+from PIL import Image
 
 from rl_package.models import SACActor, TD3Actor
 
@@ -53,7 +54,29 @@ class DuckiebotAgent:
         )
         return map_x, map_y
 
-    def preprocess(self, obs_rgb):
+    def preprocess(self, obs_bgr):
+        # 1. Convert BGR (OpenCV) to RGB for PIL
+        img_rgb = cv2.cvtColor(obs_bgr, cv2.COLOR_BGR2RGB)
+        img = Image.fromarray(img_rgb)
+        
+        # 2. Crop top 1/3 (Keep bottom 2/3)
+        width, height = img.size
+        top_boundary = int(height * (1/3))
+        img = img.crop((0, top_boundary, width, height))
+        
+        # 3. Resize to 84x84
+        img = img.resize((84, 84), Image.BILINEAR)
+        final_np = np.array(img) # Now (84, 84, 3) RGB
+        
+        if self.grayscale:
+            # If your model is grayscale, convert now
+            gray = cv2.cvtColor(final_np, cv2.COLOR_RGB2GRAY)
+            return gray[np.newaxis, :, :] # (1, 84, 84)
+        
+        # Transpose to (3, 84, 84) for PyTorch
+        return final_np.transpose(2, 0, 1)
+    
+    def preprocess_cv(self, obs_rgb):
         """
         Replicates the Sim2Real vision pipeline: 
         """
@@ -65,7 +88,7 @@ class DuckiebotAgent:
         
         # CropResizeWrapper
         h, w = img.shape[:2]
-        top_boundary = int(h * 0.25)
+        top_boundary = int(h / 3)
         img = img[top_boundary:h, 0:w]
         
         img = cv2.resize(img, (84, 84), interpolation=cv2.INTER_LINEAR)
@@ -92,7 +115,7 @@ class DuckiebotAgent:
         else:
             self.frames.append(processed_frame)
             
-        # Stack along channel dimension: (C*Stack, 84, 84)
+        # (C*Stack, 84, 84)
         stacked_input = np.concatenate(list(self.frames), axis=0)
         input_tensor = torch.FloatTensor(stacked_input).unsqueeze(0).to(self.device)
 
@@ -110,7 +133,7 @@ class DuckiebotAgent:
         Translates [v, omega] to physical Wheel Commands [u_l, u_r].
         Replicates ActionWrapper and KinematicActionWrapper.
         """
-        v, omega = action[0] * 0.8, action[1]
+        v, omega = action[0] * 0.5,  action[1]
         
         # DB21J physical constants
         radius, wheel_dist, k = 0.0318, 0.102, 27.0

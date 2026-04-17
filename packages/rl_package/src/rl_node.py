@@ -4,9 +4,9 @@ import sys
 import cv2
 import numpy as np
 import rospy
-from duckietown.dtros import DTROS, NodeType # pyright: ignore[reportMissingImports]
+from duckietown.dtros import DTROS, NodeType, TopicType # pyright: ignore[reportMissingImports]
 from sensor_msgs.msg import CompressedImage # pyright: ignore[reportMissingImports]
-from duckietown_msgs.msg import WheelsCmdStamped # pyright: ignore[reportMissingImports]
+from duckietown_msgs.msg import WheelsCmdStamped, Twist2DStamped # pyright: ignore[reportMissingImports]
 from cv_bridge import CvBridge # pyright: ignore[reportMissingImports]
 from rl_package.agent import DuckiebotAgent
 from rl_package.debug_bot import run_remote_debug
@@ -28,7 +28,8 @@ class RLNode(DTROS):
             algo_type=algo
         )
         self.last_obs = None
-        self.wheel_pub = rospy.Publisher(f"/{self.veh}/wheels_driver_node/wheels_cmd", WheelsCmdStamped, queue_size=1)
+        self.wheel_pub_wlwr = rospy.Publisher(f"/{self.veh}/wheels_driver_node/wheels_cmd", WheelsCmdStamped, queue_size=1)
+        self.wheel_pub = rospy.Publisher(f"/{self.veh}/car_cmd_switch_node/cmd", Twist2DStamped, queue_size=1, dt_topic_type=TopicType.CONTROL)
         self.sub = rospy.Subscriber(f"/{self.veh}/camera_node/image/compressed", CompressedImage, self.callback, queue_size=1, buff_size=2**24)
         
         rospy.loginfo(f"Node started for {self.veh}. Mode: {'DEBUG' if self.debug_mode else 'INFERENCE'}")
@@ -38,7 +39,7 @@ class RLNode(DTROS):
         self.last_obs = self.bridge.compressed_imgmsg_to_cv2(msg)
 
     def run(self):
-        rate = rospy.Rate(7.5)
+        rate = rospy.Rate(10)
         while not rospy.is_shutdown():
             if self.last_obs is not None:
                 if self.debug_mode:
@@ -46,17 +47,17 @@ class RLNode(DTROS):
                 else:
                     action = self.agent.get_action(self.last_obs)
                     wheel_cmds = self.agent.postprocess_kinematics(action)
-                    self.write("wheels", wheel_cmds)
+                    self.write("wheels", action)
 
             rate.sleep()
     
     def write(self, topic, data):
         if topic == 'wheels':
             try:
-                cmd_msg = WheelsCmdStamped()
+                cmd_msg = Twist2DStamped()
                 cmd_msg.header.stamp = rospy.Time.now()
-                cmd_msg.vel_left = data[0]
-                cmd_msg.vel_right = data[1]
+                cmd_msg.v = data[0] * 0.5
+                cmd_msg.omega = data[1]
                 self.wheel_pub.publish(cmd_msg)
             except (rospy.ROSException, rospy.ROSInterruptException):
                 pass
