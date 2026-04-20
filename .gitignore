@@ -7,3 +7,6 @@ html/*
 
 # otherwise CI thinks index not clean
 *.resolved
+
+# models
+assets/models/*

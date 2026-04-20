@@ -136,10 +136,10 @@ class DuckiebotAgent:
         v, omega = action[0] * 0.5,  action[1]
         
         # DB21J physical constants
-        radius, wheel_dist, k = 0.0318, 0.102, 27.0
+        radius, wheel_dist, k, trim = 0.0318, 0.102, 27.0, -0.1
         
         # Kinematic equations
-        u_r = np.clip(((v + 0.5 * omega * wheel_dist) / radius) / k, -1.0, 1.0)
-        u_l = np.clip(((v - 0.5 * omega * wheel_dist) / radius) / k, -1.0, 1.0)
+        u_r = np.clip(((v + 0.5 * omega * wheel_dist) / radius) * (1.0 + trim) / k, -1.0, 1.0)
+        u_l = np.clip(((v - 0.5 * omega * wheel_dist) / radius) * (1.0 - trim) / k, -1.0, 1.0)
         
         return [u_l, u_r]

@@ -21,7 +21,7 @@ class RLNode(DTROS):
         self.debug_mode = os.environ.get("DEBUG_MODE", "false").lower() == "true"
 
         repo_path = os.environ.get("DT_REPO_PATH", "/code/duckie-rl-deploy")
-        model_full_path = os.path.join(repo_path, f"assets/models/{algo}_Final.cleanrl_model")
+        model_full_path = os.path.join(repo_path, f"assets/models/{algo}_Final_pv_dr.cleanrl_model")
         
         self.agent = DuckiebotAgent(
             model_path=model_full_path, 
@@ -47,18 +47,18 @@ class RLNode(DTROS):
                 else:
                     action = self.agent.get_action(self.last_obs)
                     wheel_cmds = self.agent.postprocess_kinematics(action)
-                    self.write("wheels", action)
+                    self.write("wheels", wheel_cmds)
 
             rate.sleep()
     
     def write(self, topic, data):
         if topic == 'wheels':
             try:
-                cmd_msg = Twist2DStamped()
+                cmd_msg = WheelsCmdStamped()
                 cmd_msg.header.stamp = rospy.Time.now()
-                cmd_msg.v = data[0] * 0.5
-                cmd_msg.omega = data[1]
-                self.wheel_pub.publish(cmd_msg)
+                cmd_msg.vel_left = data[0]
+                cmd_msg.vel_right = data[1]
+                self.wheel_pub_wlwr.publish(cmd_msg)
             except (rospy.ROSException, rospy.ROSInterruptException):
                 pass
             
