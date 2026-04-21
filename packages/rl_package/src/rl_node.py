@@ -21,7 +21,7 @@ class RLNode(DTROS):
         self.debug_mode = os.environ.get("DEBUG_MODE", "false").lower() == "true"
 
         repo_path = os.environ.get("DT_REPO_PATH", "/code/duckie-rl-deploy")
-        model_full_path = os.path.join(repo_path, f"assets/models/{algo}_Final_pv_dr.cleanrl_model")
+        model_full_path = os.path.join(repo_path, f"assets/models/{algo}_Final_v3.cleanrl_model")
         
         self.agent = DuckiebotAgent(
             model_path=model_full_path, 
@@ -31,21 +31,26 @@ class RLNode(DTROS):
         self.wheel_pub_wlwr = rospy.Publisher(f"/{self.veh}/wheels_driver_node/wheels_cmd", WheelsCmdStamped, queue_size=1)
         self.wheel_pub = rospy.Publisher(f"/{self.veh}/car_cmd_switch_node/cmd", Twist2DStamped, queue_size=1, dt_topic_type=TopicType.CONTROL)
         self.sub = rospy.Subscriber(f"/{self.veh}/camera_node/image/compressed", CompressedImage, self.callback, queue_size=1, buff_size=2**24)
+
+        self.frame_rate = 30
+        self.action_freq = 7.5
         
         rospy.loginfo(f"Node started for {self.veh}. Mode: {'DEBUG' if self.debug_mode else 'INFERENCE'}")
 
     def callback(self, msg):
         
         self.last_obs = self.bridge.compressed_imgmsg_to_cv2(msg)
+        processed_frame = self.agent.preprocess(self.last_obs)
+        self.agent.update_buffer(processed_frame)
 
     def run(self):
-        rate = rospy.Rate(10)
+        rate = rospy.Rate(self.action_freq)
         while not rospy.is_shutdown():
-            if self.last_obs is not None:
+            if len(self.agent.frames) == self.agent.frame_stack:
                 if self.debug_mode:
                     run_remote_debug(self.agent, self, self.last_obs)
                 else:
-                    action = self.agent.get_action(self.last_obs)
+                    action = self.agent.get_action()
                     wheel_cmds = self.agent.postprocess_kinematics(action)
                     self.write("wheels", wheel_cmds)
 
