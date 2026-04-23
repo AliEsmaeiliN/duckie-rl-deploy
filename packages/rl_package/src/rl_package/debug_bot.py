@@ -18,18 +18,15 @@ def run_remote_debug(agent, context, observation):
     """
     Called by solution.py solve() function.
     """
-    processed_obs = agent.preprocess(observation)
-    
-    view_img = processed_obs.squeeze() 
-    
-    view_img = view_img.astype(np.uint8) 
 
-    action = agent.get_action(observation)
+    stacked_frames = np.concatenate(list(agent.frames), axis=0)
+
+    action = agent.get_action()
     action = [action[0], action[1]]
     wheel_cmds = agent.postprocess_kinematics(action)
 
     data = {
-        "image": view_img, 
+        "image": stacked_frames, 
         "action": action,
         "motors": wheel_cmds
     }
