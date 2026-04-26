@@ -40,19 +40,22 @@ class RLNode(DTROS):
     def callback(self, msg):
         
         self.last_obs = self.bridge.compressed_imgmsg_to_cv2(msg)
-        processed_frame = self.agent.preprocess(self.last_obs)
-        self.agent.update_buffer(processed_frame)
+        #processed_frame = self.agent.preprocess(self.last_obs)
+        #self.agent.update_buffer(processed_frame)
 
     def run(self):
         rate = rospy.Rate(self.action_freq)
         while not rospy.is_shutdown():
-            if len(self.agent.frames) == self.agent.frame_stack:
-                if self.debug_mode:
-                    run_remote_debug(self.agent, self, self.last_obs)
-                else:
-                    action = self.agent.get_action()
-                    wheel_cmds = self.agent.postprocess_kinematics(action)
-                    self.write("wheels", wheel_cmds)
+            if self.last_obs is not None:
+                processed_frame = self.agent.preprocess(self.last_obs)
+                self.agent.update_buffer(processed_frame)
+                if len(self.agent.frames) == self.agent.frame_stack:
+                    if self.debug_mode:
+                        run_remote_debug(self.agent, self, self.last_obs)
+                    else:
+                        action = self.agent.get_action()
+                        wheel_cmds = self.agent.postprocess_kinematics(action)
+                        self.write("wheels", wheel_cmds)
 
             rate.sleep()
     
