@@ -66,7 +66,7 @@ class DuckiebotAgent:
         img = Image.fromarray(img_rgb)
         
         width, height = img.size
-        top_boundary = int(height * (1/3))
+        top_boundary = int(height * (5/12))
         img = img.crop((0, top_boundary, width, height))
         
         # 3. Resize to 84x84

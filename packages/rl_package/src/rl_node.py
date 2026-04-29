@@ -21,7 +21,7 @@ class RLNode(DTROS):
         self.debug_mode = os.environ.get("DEBUG_MODE", "false").lower() == "true"
 
         repo_path = os.environ.get("DT_REPO_PATH", "/code/duckie-rl-deploy")
-        model_full_path = os.path.join(repo_path, f"assets/models/{algo}_V2.cleanrl_model")
+        model_full_path = os.path.join(repo_path, f"assets/models/{algo}_V5.cleanrl_model")
         
         self.agent = DuckiebotAgent(
             model_path=model_full_path, 
