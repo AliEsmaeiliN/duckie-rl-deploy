@@ -14,7 +14,8 @@ class DuckiebotAgent:
         self.grayscale = grayscale
         self.frame_stack = frame_stack
         self.prev_action = np.array([0.0, 0.0])
-        self.alpha = 0.6 # Lower = smoother but more lag
+        self.obs_shape = (84, 84)
+        self.alpha = 0.8 # Lower = smoother but more lag
         self.clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         
         print(f"Loading {self.algo_type.upper()} model from {model_path}...")
@@ -69,8 +70,7 @@ class DuckiebotAgent:
         top_boundary = int(height * (5/12))
         img = img.crop((0, top_boundary, width, height))
         
-        # 3. Resize to 84x84
-        img = img.resize((84, 84), Image.BILINEAR)
+        img = img.resize(self.obs_shape, Image.BILINEAR)
         final_np = np.array(img) # Now (84, 84, 3) RGB
         
         if self.grayscale:

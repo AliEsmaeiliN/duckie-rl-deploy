@@ -21,7 +21,7 @@ class RLNode(DTROS):
         self.debug_mode = os.environ.get("DEBUG_MODE", "false").lower() == "true"
 
         repo_path = os.environ.get("DT_REPO_PATH", "/code/duckie-rl-deploy")
-        model_full_path = os.path.join(repo_path, f"assets/models/{algo}_V5.cleanrl_model")
+        model_full_path = os.path.join(repo_path, f"assets/models/{algo}_v6.cleanrl_model")
         
         self.agent = DuckiebotAgent(
             model_path=model_full_path, 
@@ -33,7 +33,7 @@ class RLNode(DTROS):
         self.sub = rospy.Subscriber(f"/{self.veh}/camera_node/image/compressed", CompressedImage, self.callback, queue_size=1, buff_size=2**24)
 
         self.frame_rate = 30
-        self.action_freq = 15
+        self.action_freq = 7.5
         
         rospy.loginfo(f"Node started for {self.veh}. Mode: {'DEBUG' if self.debug_mode else 'INFERENCE'}")
 
@@ -51,7 +51,7 @@ class RLNode(DTROS):
                 self.agent.update_buffer(processed_frame)
                 if len(self.agent.frames) == self.agent.frame_stack:
                     if self.debug_mode:
-                        run_remote_debug(self.agent, self, self.last_obs)
+                        run_remote_debug(self.agent, self, processed_frame)
                     else:
                         action = self.agent.get_action()
                         wheel_cmds = self.agent.postprocess_kinematics(action)
