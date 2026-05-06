@@ -63,12 +63,19 @@ class DuckiebotAgent:
         yuv = cv2.cvtColor(rectified, cv2.COLOR_BGR2YUV)
         yuv[:, :, 0] = self.clahe.apply(yuv[:, :, 0])
         rectified_bgr = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
+
+        img = Image.fromarray(cv2.cvtColor(rectified, cv2.COLOR_BGR2RGB))
+        img = img.resize((160, 120), Image.BILINEAR)
+        
         img_rgb = cv2.cvtColor(rectified_bgr, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(img_rgb)
         
         width, height = img.size
-        top_boundary = int(height * (5/12))
-        img = img.crop((0, top_boundary, width, height))
+        top = int(height * (5/12))
+        H_CROP_FRAC = 0.20
+        left = int(width * H_CROP_FRAC)
+        right = int(width * (1.0 - H_CROP_FRAC))
+        img = img.crop((left, top, right, height))
         
         img = img.resize(self.obs_shape, Image.BILINEAR)
         final_np = np.array(img) # Now (84, 84, 3) RGB
