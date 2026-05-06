@@ -71,7 +71,7 @@ class DuckiebotAgent:
         img = Image.fromarray(img_rgb)
         
         width, height = img.size
-        top = int(height * (5/12))
+        top = int(height * (1/3))
         H_CROP_FRAC = 0.20
         left = int(width * H_CROP_FRAC)
         right = int(width * (1.0 - H_CROP_FRAC))

@@ -9,7 +9,6 @@ from sensor_msgs.msg import CompressedImage # pyright: ignore[reportMissingImpor
 from duckietown_msgs.msg import WheelsCmdStamped, Twist2DStamped # pyright: ignore[reportMissingImports]
 from cv_bridge import CvBridge # pyright: ignore[reportMissingImports]
 from rl_package.agent import DuckiebotAgent
-from rl_package.debug_bot import run_remote_debug
 
 class RLNode(DTROS):
     def __init__(self, node_name, algo="sac"):
@@ -20,8 +19,12 @@ class RLNode(DTROS):
 
         self.debug_mode = os.environ.get("DEBUG_MODE", "false").lower() == "true"
 
+        if self.debug_mode:
+            from rl_package.debug_bot import run_remote_debug
+            self.remote_debug = run_remote_debug
+
         repo_path = os.environ.get("DT_REPO_PATH", "/code/duckie-rl-deploy")
-        model_full_path = os.path.join(repo_path, f"assets/models/{algo}_v6.cleanrl_model")
+        model_full_path = os.path.join(repo_path, f"assets/models/{algo}_v7.cleanrl_model")
         
         self.agent = DuckiebotAgent(
             model_path=model_full_path, 
@@ -51,7 +54,7 @@ class RLNode(DTROS):
                 self.agent.update_buffer(processed_frame)
                 if len(self.agent.frames) == self.agent.frame_stack:
                     if self.debug_mode:
-                        run_remote_debug(self.agent, self, processed_frame)
+                        self.remote_debug(self.agent, self, processed_frame)
                     else:
                         action = self.agent.get_action()
                         wheel_cmds = self.agent.postprocess_kinematics(action)
