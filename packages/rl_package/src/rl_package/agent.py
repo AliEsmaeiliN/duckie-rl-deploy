@@ -140,10 +140,10 @@ class DuckiebotAgent:
         Translates [v, omega] to physical Wheel Commands [u_l, u_r].
         Replicates ActionWrapper and KinematicActionWrapper.
         """
-        v, omega = action[0] * 0.8,  action[1]
+        v, omega = action[0] * 0.7,  action[1]
         
         # DB21J physical constants
-        radius, wheel_dist, k, trim = 0.0318, 0.102, 27.0, -0.1
+        radius, wheel_dist, k, trim = 0.0318, 0.102, 27.0, 0
         
         # Kinematic equations
         u_r = np.clip(((v + 0.5 * omega * wheel_dist) / radius) * (1.0 + trim) / k, -1.0, 1.0)
