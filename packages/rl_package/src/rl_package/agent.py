@@ -140,7 +140,10 @@ class DuckiebotAgent:
         Translates [v, omega] to physical Wheel Commands [u_l, u_r].
         Replicates ActionWrapper and KinematicActionWrapper.
         """
-        v, omega = action[0] * 0.7,  action[1]
+        v_in, omega = action[0] * 0.7,  action[1]
+
+        v_min = 0.1
+        v = max(v_in, v_min)
         
         # DB21J physical constants
         radius, wheel_dist, k, trim = 0.0318, 0.102, 27.0, 0
@@ -150,22 +153,9 @@ class DuckiebotAgent:
         u_r = ((v + 0.5 * omega * wheel_dist) / radius) * (1.0 + trim) / k
         u_l = ((v - 0.5 * omega * wheel_dist) / radius) * (1.0 - trim) / k
 
-        min_pwm = 0.10 
-        stop_threshold = 0.02 
         
-        def adapt_to_threshold(u):
-            if abs(u) < stop_threshold:
-                return 0.0  
-            if 0 < u < min_pwm:
-                return min_pwm  
-            if -min_pwm < u < 0:
-                return -min_pwm 
-            return u
-
-        u_l_final = adapt_to_threshold(u_l)
-        u_r_final = adapt_to_threshold(u_r)
         
-        return [np.clip(u_l_final, -1.0, 1.0), np.clip(u_r_final, -1.0, 1.0)]
+        return [np.clip(u_l, -1.0, 1.0), np.clip(u_r, -1.0, 1.0)]
     
     def update_buffer(self, processed_frame):
         """Appends the last frame to the stack"""
