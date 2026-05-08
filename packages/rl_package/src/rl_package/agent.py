@@ -144,12 +144,28 @@ class DuckiebotAgent:
         
         # DB21J physical constants
         radius, wheel_dist, k, trim = 0.0318, 0.102, 27.0, 0
+
         
         # Kinematic equations
-        u_r = np.clip(((v + 0.5 * omega * wheel_dist) / radius) * (1.0 + trim) / k, -1.0, 1.0)
-        u_l = np.clip(((v - 0.5 * omega * wheel_dist) / radius) * (1.0 - trim) / k, -1.0, 1.0)
+        u_r = ((v + 0.5 * omega * wheel_dist) / radius) * (1.0 + trim) / k
+        u_l = ((v - 0.5 * omega * wheel_dist) / radius) * (1.0 - trim) / k
+
+        min_pwm = 0.10 
+        stop_threshold = 0.02 
         
-        return [u_l, u_r]
+        def adapt_to_threshold(u):
+            if abs(u) < stop_threshold:
+                return 0.0  
+            if 0 < u < min_pwm:
+                return min_pwm  
+            if -min_pwm < u < 0:
+                return -min_pwm 
+            return u
+
+        u_l_final = adapt_to_threshold(u_l)
+        u_r_final = adapt_to_threshold(u_r)
+        
+        return [np.clip(u_l_final, -1.0, 1.0), np.clip(u_r_final, -1.0, 1.0)]
     
     def update_buffer(self, processed_frame):
         """Appends the last frame to the stack"""
