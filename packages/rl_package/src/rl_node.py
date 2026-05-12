@@ -24,7 +24,7 @@ class RLNode(DTROS):
             self.remote_debug = run_remote_debug
 
         repo_path = os.environ.get("DT_REPO_PATH", "/code/duckie-rl-deploy")
-        model_full_path = os.path.join(repo_path, f"assets/models/{algo}_v10.cleanrl_model")
+        model_full_path = os.path.join(repo_path, f"assets/models/{algo}_v10_cv.cleanrl_model")
         
         self.agent = DuckiebotAgent(
             model_path=model_full_path, 
@@ -50,7 +50,7 @@ class RLNode(DTROS):
         rate = rospy.Rate(self.action_freq)
         while not rospy.is_shutdown():
             if self.last_obs is not None:
-                processed_frame = self.agent.preprocess(self.last_obs)
+                processed_frame = self.agent.preprocess_cv(self.last_obs)
                 self.agent.update_buffer(processed_frame)
                 if len(self.agent.frames) == self.agent.frame_stack:
                     if self.debug_mode:

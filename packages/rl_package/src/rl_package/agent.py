@@ -87,20 +87,22 @@ class DuckiebotAgent:
         # (3, 84, 84)
         return final_np.transpose(2, 0, 1)
     
-    def preprocess_cv(self, obs_rgb):
+    def preprocess_cv(self, obs_bgr):
         """
         Replicates the Sim2Real vision pipeline: 
         """
         
-        rectified_img = cv2.remap(obs_rgb, self.map_x, self.map_y, cv2.INTER_LINEAR)
+        rectified = cv2.remap(obs_bgr, self.map_x, self.map_y, cv2.INTER_LINEAR)
+        yuv = cv2.cvtColor(rectified, cv2.COLOR_BGR2YUV)
+        yuv[:, :, 0] = self.clahe.apply(yuv[:, :, 0])
+        rectified_bgr = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
 
-        # ResizeWrapper
-        img = cv2.resize(rectified_img, (160, 120), interpolation=cv2.INTER_LINEAR)
-        
-        # CropResizeWrapper
-        h, w = img.shape[:2]
-        top_boundary = int(h / 3)
-        img = img[top_boundary:h, 0:w]
+        h, w = rectified_bgr.shape[:2]
+        top = int(h * (1/3))
+        h_crop_frac = 0.20
+        left = int(w * h_crop_frac)
+        right = int(w * (1.0 - h_crop_frac))
+        cropped = rectified_bgr[top:h, left:right]
         
         img = cv2.resize(img, (84, 84), interpolation=cv2.INTER_LINEAR)
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -140,13 +142,13 @@ class DuckiebotAgent:
         Translates [v, omega] to physical Wheel Commands [u_l, u_r].
         Replicates ActionWrapper and KinematicActionWrapper.
         """
-        v_in, omega = action[0] * 0.7,  action[1]
+        v, omega = action[0] * 0.7,  action[1]
 
-        v_min = 0.1
-        v = max(v_in, v_min)
+        #v_min = 0.1
+        #v = max(v_in, v_min)
         
         # DB21J physical constants
-        radius, wheel_dist, k, trim = 0.0318, 0.102, 27.0, 0
+        radius, wheel_dist, k, trim = 0.0318, 0.102, 27.0, -0.05
 
         
         # Kinematic equations
