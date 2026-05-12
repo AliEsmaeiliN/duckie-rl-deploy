@@ -104,7 +104,7 @@ class DuckiebotAgent:
         right = int(w * (1.0 - h_crop_frac))
         cropped = rectified_bgr[top:h, left:right]
         
-        img = cv2.resize(img, (84, 84), interpolation=cv2.INTER_LINEAR)
+        img = cv2.resize(cropped, (84, 84), interpolation=cv2.INTER_LINEAR)
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         
         if self.grayscale:
