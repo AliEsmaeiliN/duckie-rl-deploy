@@ -10,7 +10,7 @@ ARG ICON="cube"
 ARG ARCH
 ARG DISTRO=daffy
 ARG DOCKER_REGISTRY=docker.io
-ARG BASE_IMAGE=dt-ros-commons
+ARG BASE_IMAGE=dt-machine-learning-base-pytorch
 ARG BASE_TAG=${DISTRO}-${ARCH}
 ARG LAUNCHER=default
 
@@ -53,6 +53,14 @@ ENV DT_MODULE_TYPE="${REPO_NAME}" \
 # install apt dependencies
 COPY ./dependencies-apt.txt "${REPO_PATH}/"
 RUN dt-apt-install ${REPO_PATH}/dependencies-apt.txt
+
+# Fix for libcurand.so.10 on DB21J / JetPack 4.6
+ENV LD_LIBRARY_PATH=/usr/local/cuda-10.2/lib64:/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu/tegra:${LD_LIBRARY_PATH}
+ENV PATH=/usr/local/cuda-10.2/bin:/usr/local/cuda/bin:${PATH}
+
+# Required for the NVIDIA runtime to pass through the hardware
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 
 # install python3 dependencies
 ARG PIP_INDEX_URL="https://pypi.org/simple"

@@ -1,3 +1,4 @@
+import os
 import torch
 import numpy as np
 import collections
@@ -28,14 +29,14 @@ class DuckiebotAgent:
         else:
             raise ValueError(f"Unknown algo type: {self.algo_type}")
 
-        checkpoint = torch.load(model_path, map_location=self.device, weights_only=True)
+        checkpoint = torch.load(model_path, map_location=self.device)
         self.actor.load_state_dict(checkpoint['actor_state_dict'])
         self.actor.eval()
 
         self.c = 1 if grayscale else 3
         self.frames = collections.deque(maxlen=frame_stack)
 
-        self.veh = "duckie1nav" # get from env
+        self.veh = os.environ.get("VEHICLE_NAME", "duckiebot98")
         self.map_x, self.map_y = self._load_calibration()
 
     def _load_calibration(self):

@@ -13,7 +13,7 @@ Standardized Duckietown structure for hardware-aware builds:
 
 * **`assets/`**: Model weight storage (`sac_Final.cleanrl_model`).
 * **`packages/`**: Core inference modules:
-    * **`solution.py`**: ROS Node managing Camera Subscriptions and Wheel Command publishing.
+    * **`rl_node.py`**: ROS Node managing Camera Subscriptions and Wheel Command publishing.
     * **`agent.py`**: Vision pipeline (cropping/resizing) and 4-frame temporal stacking.
     * **`models.py`**: ImpalaCNN and Actor network definitions.
     * **`debug_bot.py`**: Remote telemetry for real-time visualization on a laptop.
@@ -32,18 +32,25 @@ Designed to ensure simulation-to-reality parity:
 
 ## 🚀 **Quick Start Commands**
 
-### **1. Build for ARM64**
-Perform cross-compilation on your laptop for the Jetson Nano:
+### **1. Build on Duckiebot**
+Perform compilation for the Jetson Nano:
 ```bash
-dts devel build -f
+dts devel build -f -H <robot_name>
 ```
 
 ### **2. Deploy to Robot**
 Run the container on the physical robot with hardware permissions:
 ```bash
-dts devel run -H <robot_name>.local
+dts devel run -H <robot_name> -L <luncher.sh>
 ```
 
+### **3. Running with a New Model without Rebulding the Container**
+```bash
+dts devel run -h robot.local \
+  -L sac \
+  -e MODEL=v10 \
+  -v $(pwd):/code/duckie-rl-deploy
+```
 ---
 
 ## 📦 **Technical Dependencies**
