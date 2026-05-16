@@ -15,9 +15,12 @@ class DuckiebotAgent:
         self.grayscale = grayscale
         self.frame_stack = frame_stack
         self.prev_action = np.array([0.0, 0.0])
-        self.obs_shape = (84, 84)
-        self.alpha = 0.8 # Lower = smoother but more lag
+        self.obs_shape = (160, 120)
+        self.alpha = 0.9 # Lower = smoother but more lag
         self.clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        self.tilt_strength = 0.0006
+        self.img_width = 640        # Defaults, will be updated by calib
+        self.img_height = 480
         
         print(f"Loading {self.algo_type.upper()} model from {model_path}...")
         self.frames = collections.deque(maxlen=frame_stack)
@@ -39,6 +42,22 @@ class DuckiebotAgent:
         self.veh = os.environ.get("VEHICLE_NAME", "duckiebot98")
         self.map_x, self.map_y = self._load_calibration()
 
+    def _compute_tilt_homography(self):
+        """
+        Builds a homography that simulates tilting the camera downward.
+        """
+        W, H = self.img_width, self.img_height
+        cx = W / 2
+        shift = self.tilt_strength * W * H
+        src = np.float32([[0, 0], [W, 0], [W, H], [0, H]])
+        dst = np.float32([
+            [cx - (cx - 0)     * (1 - self.tilt_strength * H), shift],
+            [cx + (W - cx)     * (1 - self.tilt_strength * H), shift],
+            [W, H],
+            [0, H]
+        ])
+        return cv2.getPerspectiveTransform(src, dst)
+    
     def _load_calibration(self):
         """Loads intrinsic parameters and prepares cv2 maps."""
         calib_path = f"/data/config/calibrations/camera_intrinsic/{self.veh}.yaml"
@@ -51,12 +70,16 @@ class DuckiebotAgent:
         img_width = calib_data['image_width']
         img_height = calib_data['image_height']
 
+
         new_camera_matrix, _ = cv2.getOptimalNewCameraMatrix(
             intrinsics, distortion, (img_width, img_height), 0, (img_width, img_height)
         )
+
         map_x, map_y = cv2.initUndistortRectifyMap(
             intrinsics, distortion, None, new_camera_matrix, (img_width, img_height), cv2.CV_32FC1
         )
+        self.H_tilt = self._compute_tilt_homography()
+
         return map_x, map_y
 
     def preprocess(self, obs_bgr):
@@ -94,22 +117,31 @@ class DuckiebotAgent:
         """
         
         rectified = cv2.remap(obs_bgr, self.map_x, self.map_y, cv2.INTER_LINEAR)
-        yuv = cv2.cvtColor(rectified, cv2.COLOR_BGR2YUV)
+        rectified = cv2.GaussianBlur(rectified, (3, 3), 0)
+        warped = cv2.warpPerspective(rectified, self.H_tilt, (self.img_width, self.img_height))
+        yuv = cv2.cvtColor(warped, cv2.COLOR_BGR2YUV)
         yuv[:, :, 0] = self.clahe.apply(yuv[:, :, 0])
-        rectified_bgr = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
-
-        h, w = rectified_bgr.shape[:2]
-        top = int(h * (1/3))
-        h_crop_frac = 0.20
+        warped = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
+        small = cv2.resize(warped, self.obs_shape, interpolation=cv2.INTER_LINEAR)
+        
+        h, w = small.shape[:2]
+        
+        # 4. Crop lines for visualization
+        v_crop_frac = 0.4
+        top_third = int(h * ( (1 - v_crop_frac) * (1/3) + v_crop_frac))
+        h_crop_frac = 0.2
         left = int(w * h_crop_frac)
         right = int(w * (1.0 - h_crop_frac))
-        cropped = rectified_bgr[top:h, left:right]
+        cropped = small[top_third:h, left:right]
+
+        
         
         img = cv2.resize(cropped, (84, 84), interpolation=cv2.INTER_LINEAR)
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         
         if self.grayscale:
-            img_processed = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+            img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+            img_processed = cv2.normalize(img_gray, None, 0, 255, cv2.NORM_MINMAX)
             img_processed = img_processed[np.newaxis, :, :]
         else:
             img_processed = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
@@ -143,7 +175,7 @@ class DuckiebotAgent:
         Translates [v, omega] to physical Wheel Commands [u_l, u_r].
         Replicates ActionWrapper and KinematicActionWrapper.
         """
-        v, omega = action[0] * 0.7,  action[1]
+        v, omega = action[0] * 0.8,  action[1]
 
         #v_min = 0.1
         #v = max(v_in, v_min)

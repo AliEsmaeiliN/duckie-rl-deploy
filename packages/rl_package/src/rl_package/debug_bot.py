@@ -4,7 +4,7 @@ import struct
 import cv2
 import numpy as np
 
-LAPTOP_IP = "192.168.0.51" 
+LAPTOP_IP = "10.42.0.1"
 PORT = 8089
 
 # Global socket to keep connection alive across steps
@@ -16,7 +16,7 @@ except Exception as e:
 
 def run_remote_debug(agent, context, observation):
     """
-    Called by solution.py solve() function.
+    Called by rl_node.py function.
     """
 
     stacked_frames = np.concatenate(list(agent.frames), axis=0)
@@ -37,3 +37,21 @@ def run_remote_debug(agent, context, observation):
         client_socket.sendall(struct.pack("Q", len(msg)) + msg)
     except Exception as e:
         print(f"Send failed: {e}")
+
+def send_live_camera(observation):
+    """
+    Transmits Observation to Laptop.
+    """
+
+    data = {
+        "image": observation,
+        "msg": "Vision Debug Stream"
+    }
+    
+    # Send via socket...
+    try:
+        msg = pickle.dumps(data)
+        client_socket.sendall(struct.pack("Q", len(msg)) + msg)
+    except Exception as e:
+        print(f"Send failed: {e}")
+        pass
