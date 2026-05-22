@@ -45,11 +45,15 @@ dts devel run -H <robot_name> -L <luncher.sh>
 ```
 
 ### **3. Running with a New Model without Rebulding the Container**
+First transfer the models to the duckibot
 ```bash
-dts devel run -h robot.local \
+scp -r <MODEL_DIR> duckie@duckiebot.local:/data/config/rl_models
+```
+Then: 
+```bash
+dts devel run -H robot.local \
   -L sac \
-  -e MODEL=v10 \
-  -v $(pwd):/code/duckie-rl-deploy
+  -- -v /data/config/rl_models:/mnt/shared_models -e MODEL=v9
 ```
 ---
 
