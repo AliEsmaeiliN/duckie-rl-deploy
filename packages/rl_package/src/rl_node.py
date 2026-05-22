@@ -24,29 +24,23 @@ class RLNode(DTROS):
             self.remote_debug = run_remote_debug
 
         model_ver = os.environ.get("MODEL", "v10")
-        repo_path = os.environ.get("DT_REPO_PATH", "/code/duckie-rl-deploy")
-
-        shared_registry = "/mnt/shared_models"
-        container_fallback_dir = os.path.join(repo_path, "assets/models")
+        algo = algo.lower()
         
-        preferred_policy = os.path.join(shared_registry, f"{algo}_{model_ver}.cleanrl_model")
-        fallback_policy = os.path.join(container_fallback_dir, "sac_v10.cleanrl_model")
+        shared_registry = "/mnt/shared_models"
+        model_full_path = os.path.join(shared_registry, f"{algo}_{model_ver}.cleanrl_model")
 
-        #model_full_path = os.path.join(repo_path, f"assets/models/{algo}_{model_ver}.cleanrl_model")
-
-        if os.path.exists(preferred_policy):
-            rospy.loginfo(f"🚀 Loading target policy from shared hub: {preferred_policy}")
-            model_full_path = preferred_policy
-            target_algo = algo
-        else:
-            rospy.logwarn(f"⚠️ Target model missing at {preferred_policy}. Activating container fallback.")
-            model_full_path = fallback_policy
-            target_algo = "sac"
+        if not os.path.exists(model_full_path):
+            rospy.logwarn(f" Requested policy missing at target path: {model_full_path}")
+            repo_path = os.environ.get("DT_REPO_PATH", "/code/catkin_ws/src/duckie-rl-deploy")
+            model_full_path = os.path.join(repo_path, "assets/models/sac_v10.cleanrl_model")
+            algo = "sac"
+            rospy.logwarn(f" Hard-locking execution structure to baseline container recovery policy: {model_full_path}")
         
         self.agent = DuckiebotAgent(
             model_path=model_full_path, 
-            algo_type=target_algo
+            algo_type=algo
         )
+
         self.last_obs = None
         self.wheel_pub_wlwr = rospy.Publisher(f"/{self.veh}/wheels_driver_node/wheels_cmd", WheelsCmdStamped, queue_size=1)
         self.wheel_pub = rospy.Publisher(f"/{self.veh}/car_cmd_switch_node/cmd", Twist2DStamped, queue_size=1, dt_topic_type=TopicType.CONTROL)
