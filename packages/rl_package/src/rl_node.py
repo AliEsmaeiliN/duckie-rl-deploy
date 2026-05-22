@@ -15,7 +15,7 @@ class RLNode(DTROS):
         super(RLNode, self).__init__(node_name=node_name, node_type=NodeType.CONTROL)
         
         self.bridge = CvBridge()
-        self.veh = os.environ.get('VEHICLE_NAME', 'duckie1nav')
+        self.veh = os.environ.get('VEHICLE_NAME', 'duckiebot98')
 
         self.debug_mode = os.environ.get("DEBUG_MODE", "false").lower() == "true"
 
@@ -25,11 +25,27 @@ class RLNode(DTROS):
 
         model_ver = os.environ.get("MODEL", "v10")
         repo_path = os.environ.get("DT_REPO_PATH", "/code/duckie-rl-deploy")
-        model_full_path = os.path.join(repo_path, f"assets/models/{algo}_{model_ver}.cleanrl_model")
+
+        shared_registry = "/mnt/shared_models"
+        container_fallback_dir = os.path.join(repo_path, "assets/models")
+        
+        preferred_policy = os.path.join(shared_registry, f"{algo}_{model_ver}.cleanrl_model")
+        fallback_policy = os.path.join(container_fallback_dir, "sac_v10.cleanrl_model")
+
+        #model_full_path = os.path.join(repo_path, f"assets/models/{algo}_{model_ver}.cleanrl_model")
+
+        if os.path.exists(preferred_policy):
+            rospy.loginfo(f"🚀 Loading target policy from shared hub: {preferred_policy}")
+            model_full_path = preferred_policy
+            target_algo = algo
+        else:
+            rospy.logwarn(f"⚠️ Target model missing at {preferred_policy}. Activating container fallback.")
+            model_full_path = fallback_policy
+            target_algo = "sac"
         
         self.agent = DuckiebotAgent(
             model_path=model_full_path, 
-            algo_type=algo
+            algo_type=target_algo
         )
         self.last_obs = None
         self.wheel_pub_wlwr = rospy.Publisher(f"/{self.veh}/wheels_driver_node/wheels_cmd", WheelsCmdStamped, queue_size=1)
