@@ -15,7 +15,7 @@ class DuckiebotAgent:
         else:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        print(f" RUNNING ON: {str(self.agent.device).upper()} ")
+        print(f" RUNNING ON: {str(self.device).upper()} ")
             
         self.algo_type = algo_type.lower()
         self.grayscale = grayscale
