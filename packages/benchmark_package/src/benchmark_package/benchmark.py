@@ -8,7 +8,7 @@ import numpy as np
 from duckietown.dtros import DTROS, NodeType # pyright: ignore[reportMissingImports]
 from sensor_msgs.msg import CompressedImage # pyright: ignore[reportMissingImports]
 
-from rl_package.agent import DuckiebotAgent
+from rl_package.agent import DuckiebotAgent # pyright: ignore[reportMissingImports]
 
 class HardwareBenchmarkNode(DTROS):
     def __init__(self, node_name):
