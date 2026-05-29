@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>benchmark_package</name>
+  <version>1.0.0</version>
+  <description>Sim2Real Hardware Profiling and Telemetry Suite</description>
+  <maintainer email="user@duckietown.com">Duckietown Developer</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>rl_package</exec_depend> <export>
+    <pip_requirements>dependencies-py3.txt</pip_requirements>
+  </export>
+</package>

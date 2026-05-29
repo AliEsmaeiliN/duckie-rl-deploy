@@ -9,8 +9,12 @@ from PIL import Image
 from rl_package.models import SACActor, TD3Actor
 
 class DuckiebotAgent:
-    def __init__(self, model_path, algo_type="sac", grayscale=True, frame_stack=4):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    def __init__(self, model_path, algo_type="sac", grayscale=True, frame_stack=4, device=None):
+        if device is not None:
+            self.device = torch.device(device)
+        else:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            
         self.algo_type = algo_type.lower()
         self.grayscale = grayscale
         self.frame_stack = frame_stack
