@@ -124,11 +124,11 @@ class DuckiebotAgent:
         
         rectified = cv2.remap(obs_bgr, self.map_x, self.map_y, cv2.INTER_LINEAR)
         rectified = cv2.GaussianBlur(rectified, (3, 3), 0)
-        warped = cv2.warpPerspective(rectified, self.H_tilt, (self.img_width, self.img_height))
-        yuv = cv2.cvtColor(warped, cv2.COLOR_BGR2YUV)
-        yuv[:, :, 0] = self.clahe.apply(yuv[:, :, 0])
-        warped = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
-        small = cv2.resize(warped, self.obs_shape, interpolation=cv2.INTER_LINEAR)
+        #warped = cv2.warpPerspective(rectified, self.H_tilt, (self.img_width, self.img_height))
+        #yuv = cv2.cvtColor(warped, cv2.COLOR_BGR2YUV)
+        #yuv[:, :, 0] = self.clahe.apply(yuv[:, :, 0])
+        #warped = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
+        small = cv2.resize(rectified, self.obs_shape, interpolation=cv2.INTER_LINEAR)
         
         h, w = small.shape[:2]
         
