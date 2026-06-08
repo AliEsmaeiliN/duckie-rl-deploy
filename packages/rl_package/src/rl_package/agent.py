@@ -87,35 +87,6 @@ class DuckiebotAgent:
         self.H_tilt = self._compute_tilt_homography()
 
         return map_x, map_y
-
-    def preprocess(self, obs_bgr):
-        rectified = cv2.remap(obs_bgr, self.map_x, self.map_y, cv2.INTER_LINEAR)
-        yuv = cv2.cvtColor(rectified, cv2.COLOR_BGR2YUV)
-        yuv[:, :, 0] = self.clahe.apply(yuv[:, :, 0])
-        rectified_bgr = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
-
-        img = Image.fromarray(cv2.cvtColor(rectified, cv2.COLOR_BGR2RGB))
-        img = img.resize((160, 120), Image.BILINEAR)
-        
-        img_rgb = cv2.cvtColor(rectified_bgr, cv2.COLOR_BGR2RGB)
-        img = Image.fromarray(img_rgb)
-        
-        width, height = img.size
-        top = int(height * (1/3))
-        H_CROP_FRAC = 0.20
-        left = int(width * H_CROP_FRAC)
-        right = int(width * (1.0 - H_CROP_FRAC))
-        img = img.crop((left, top, right, height))
-        
-        img = img.resize(self.obs_shape, Image.BILINEAR)
-        final_np = np.array(img) # Now (84, 84, 3) RGB
-        
-        if self.grayscale:
-            gray = cv2.cvtColor(final_np, cv2.COLOR_RGB2GRAY)
-            return gray[np.newaxis, :, :] # (1, 84, 84)
-        
-        # (3, 84, 84)
-        return final_np.transpose(2, 0, 1)
     
     def preprocess_cv(self, obs_bgr):
         """
@@ -124,11 +95,11 @@ class DuckiebotAgent:
         
         rectified = cv2.remap(obs_bgr, self.map_x, self.map_y, cv2.INTER_LINEAR)
         rectified = cv2.GaussianBlur(rectified, (3, 3), 0)
-        #warped = cv2.warpPerspective(rectified, self.H_tilt, (self.img_width, self.img_height))
+        warped = cv2.warpPerspective(rectified, self.H_tilt, (self.img_width, self.img_height))
         #yuv = cv2.cvtColor(warped, cv2.COLOR_BGR2YUV)
         #yuv[:, :, 0] = self.clahe.apply(yuv[:, :, 0])
         #warped = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
-        small = cv2.resize(rectified, self.obs_shape, interpolation=cv2.INTER_LINEAR)
+        small = cv2.resize(warped, self.obs_shape, interpolation=cv2.INTER_LINEAR)
         
         h, w = small.shape[:2]
         
@@ -143,14 +114,14 @@ class DuckiebotAgent:
         
         
         img = cv2.resize(cropped, (84, 84), interpolation=cv2.INTER_LINEAR)
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        #img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         
         if self.grayscale:
-            img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+            img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             img_processed = cv2.normalize(img_gray, None, 0, 255, cv2.NORM_MINMAX)
             img_processed = img_processed[np.newaxis, :, :]
         else:
-            img_processed = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+            img_processed = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             img_processed = img_processed.transpose(2, 0, 1)
             
         return img_processed
