@@ -22,8 +22,7 @@ class DuckiebotAgent:
         self.frame_stack = frame_stack
         self.prev_action = np.array([0.0, 0.0])
         self.obs_shape = (160, 120)
-        self.alpha = 0.9 # Lower = smoother but more lag
-        self.clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        self.alpha = 0.8 # Lower = smoother but more lag
         self.tilt_strength = 0.0006
         self.img_width = 640        # Defaults, will be updated by calib
         self.img_height = 480
@@ -96,25 +95,20 @@ class DuckiebotAgent:
         rectified = cv2.remap(obs_bgr, self.map_x, self.map_y, cv2.INTER_LINEAR)
         rectified = cv2.GaussianBlur(rectified, (3, 3), 0)
         warped = cv2.warpPerspective(rectified, self.H_tilt, (self.img_width, self.img_height))
-        #yuv = cv2.cvtColor(warped, cv2.COLOR_BGR2YUV)
-        #yuv[:, :, 0] = self.clahe.apply(yuv[:, :, 0])
-        #warped = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
-        small = cv2.resize(warped, self.obs_shape, interpolation=cv2.INTER_LINEAR)
         
-        h, w = small.shape[:2]
         
-        # 4. Crop lines for visualization
+        h, w = warped.shape[:2]
+        
         v_crop_frac = 0.4
         top_third = int(h * ( (1 - v_crop_frac) * (1/3) + v_crop_frac))
         h_crop_frac = 0.2
         left = int(w * h_crop_frac)
         right = int(w * (1.0 - h_crop_frac))
-        cropped = small[top_third:h, left:right]
+        cropped = warped[top_third:h, left:right]
 
         
         
         img = cv2.resize(cropped, (84, 84), interpolation=cv2.INTER_LINEAR)
-        #img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         
         if self.grayscale:
             img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
