@@ -54,8 +54,7 @@ class RLNode(DTROS):
     def callback(self, msg):
         
         self.last_obs = self.bridge.compressed_imgmsg_to_cv2(msg)
-        #processed_frame = self.agent.preprocess(self.last_obs)
-        #self.agent.update_buffer(processed_frame)
+        
 
     def run(self):
         rate = rospy.Rate(self.action_freq)
