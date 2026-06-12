@@ -47,7 +47,7 @@ class RLNode(DTROS):
         self.sub = rospy.Subscriber(f"/{self.veh}/camera_node/image/compressed", CompressedImage, self.callback, queue_size=1, buff_size=2**24)
 
         self.frame_rate = 30
-        self.action_freq = 7.5
+        self.action_freq = 15
         
         rospy.loginfo(f"Node started for {self.veh}. Mode: {'DEBUG' if self.debug_mode else 'INFERENCE'}")
 
