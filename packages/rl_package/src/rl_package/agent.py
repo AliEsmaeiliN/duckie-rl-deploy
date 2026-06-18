@@ -147,21 +147,25 @@ class DuckiebotAgent:
         Replicates ActionWrapper and KinematicActionWrapper.
         """
         v_scale = 0.8
-        omega_scale = 8.0
+        omega_scale = 3
         v, omega = action[0] * v_scale,  action[1] * omega_scale
 
         
         # DB21J physical constants
-        radius, wheel_dist, k, gain, trim = 0.0318, 0.102, 27.0, 1.0, -0.05
+        radius, wheel_dist, k, gain, trim, limit = 0.0318, 0.102, 27.0, 1.0, -0.05, 1.0
 
         
         # Kinematic equations
         u_r = ((v + 0.5 * omega * wheel_dist) / radius) * (gain + trim) / k
         u_l = ((v - 0.5 * omega * wheel_dist) / radius) * (gain - trim) / k
 
+        if np.abs(u_r) > limit or np.abs(u_l) > limit:
+            excess = max(np.abs(u_r), np.abs(u_l))
+            scale  = limit / excess          # uniform scale preserves steering ratio
+            u_r   *= scale
+            u_l   *= scale
         
-        
-        return [np.clip(u_l, -1.0, 1.0), np.clip(u_r, -1.0, 1.0)]
+        return np.array([u_l, u_r], dtype=np.float32)
     
     def update_buffer(self, processed_frame):
         """Appends the last frame to the stack"""
