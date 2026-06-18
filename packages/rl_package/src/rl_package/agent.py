@@ -147,7 +147,7 @@ class DuckiebotAgent:
         Replicates ActionWrapper and KinematicActionWrapper.
         """
         v_scale = 0.8
-        omega_scale = 1
+        omega_scale = 3
         v, omega = action[0] * v_scale,  action[1] * omega_scale
 
         
