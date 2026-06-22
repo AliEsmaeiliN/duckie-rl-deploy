@@ -91,20 +91,20 @@ class DuckiebotAgent:
         """
         Replicates the Sim2Real vision pipeline: 
         """
+        #subscribing to the corrected camera input 
+        #rectified = cv2.remap(obs_bgr, self.map_x, self.map_y, cv2.INTER_LINEAR)
+        rectified = cv2.GaussianBlur(obs_bgr, (3, 3), 0)
+        #warped = cv2.warpPerspective(rectified, self.H_tilt, (self.img_width, self.img_height))
         
-        rectified = cv2.remap(obs_bgr, self.map_x, self.map_y, cv2.INTER_LINEAR)
-        rectified = cv2.GaussianBlur(rectified, (3, 3), 0)
-        warped = cv2.warpPerspective(rectified, self.H_tilt, (self.img_width, self.img_height))
         
-        
-        h, w = warped.shape[:2]
+        h, w = rectified.shape[:2]
         
         v_crop_frac = 0.4
         top_third = int(h * ( (1 - v_crop_frac) * (1/3) + v_crop_frac))
         h_crop_frac = 0.2
         left = int(w * h_crop_frac)
         right = int(w * (1.0 - h_crop_frac))
-        cropped = warped[top_third:h, left:right]
+        cropped = rectified[top_third:h, left:right]
 
         
         
