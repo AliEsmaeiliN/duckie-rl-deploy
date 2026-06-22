@@ -44,7 +44,7 @@ class RLNode(DTROS):
         self.last_obs = None
         self.wheel_pub_wlwr = rospy.Publisher(f"/{self.veh}/wheels_driver_node/wheels_cmd", WheelsCmdStamped, queue_size=1)
         self.wheel_pub = rospy.Publisher(f"/{self.veh}/car_cmd_switch_node/cmd", Twist2DStamped, queue_size=1, dt_topic_type=TopicType.CONTROL)
-        self.sub = rospy.Subscriber(f"/{self.veh}/camera_node/image/compressed", CompressedImage, self.callback, queue_size=1, buff_size=2**24)
+        self.sub = rospy.Subscriber(f"/{self.veh}/camera_node/image/rect/compressed", CompressedImage, self.callback, queue_size=1, buff_size=2**24)
 
         self.frame_rate = 30
         self.action_freq = 15
