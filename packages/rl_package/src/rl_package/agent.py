@@ -43,6 +43,11 @@ class DuckiebotAgent:
 
         self.c = 1 if grayscale else 3
         self.frames = collections.deque(maxlen=frame_stack)
+        self.input_tensor = torch.zeros(
+            (1, self.c * self.frame_stack, 84, 84), 
+            dtype=torch.float32, 
+            device=self.device
+        )
 
         self.veh = os.environ.get("VEHICLE_NAME", "duckiebot98")
         self.map_x, self.map_y = self._load_calibration()
@@ -127,7 +132,7 @@ class DuckiebotAgent:
 
         # (C*Stack, 84, 84)
         stacked_input = np.concatenate(list(self.frames), axis=0)
-        input_tensor = torch.FloatTensor(stacked_input).unsqueeze(0).to(self.device)
+        self.input_tensor.copy_(torch.from_numpy(stacked_input).unsqueeze(0))
 
         with torch.no_grad():
             if self.algo_type == "sac":
