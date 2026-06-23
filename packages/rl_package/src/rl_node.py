@@ -35,10 +35,6 @@ class RLNode(DTROS):
 
         self.last_obs = None
         self.wheel_pub_wlwr = rospy.Publisher(f"/{self.veh}/wheels_driver_node/wheels_cmd", WheelsCmdStamped, queue_size=1)
-        
-        # --- Interactive Subscribers ---
-        rospy.Subscriber(f"/{self.veh}/{node_name}/active", Bool, self.toggle_active_callback, queue_size=1)
-        rospy.Subscriber(f"/{self.veh}/{node_name}/change_model", String, self.change_model_callback, queue_size=1)
 
         self.cmd_sub = rospy.Subscriber(
             f"/{self.veh}/{node_name}/commands", 

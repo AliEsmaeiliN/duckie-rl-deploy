@@ -90,37 +90,37 @@ class DuckiebotAgent:
         )
         self.H_tilt = self._compute_tilt_homography()
 
-        return map_x, map_y
+        self.map_x = cv2.warpPerspective(map_x, self.H_tilt, (img_width, img_height), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+        self.map_y = cv2.warpPerspective(map_y, self.H_tilt, (img_width, img_height), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+        
+        return self.map_x, self.map_y
     
     def preprocess_cv(self, obs_bgr):
         """
         Replicates the Sim2Real vision pipeline: 
         """
-        #subscribing to the corrected camera input 
-        #rectified = cv2.remap(obs_bgr, self.map_x, self.map_y, cv2.INTER_LINEAR)
-        rectified = cv2.GaussianBlur(obs_bgr, (3, 3), 0)
-        #warped = cv2.warpPerspective(rectified, self.H_tilt, (self.img_width, self.img_height))
+        img_org = cv2.remap(obs_bgr, self.map_x, self.map_y, cv2.INTER_LINEAR)
+        #img_org = cv2.warpPerspective(img_org, self.H_tilt, (self.img_width, self.img_height))
         
         
-        h, w = rectified.shape[:2]
+        h, w = img_org.shape[:2]
         
         v_crop_frac = 0.4
         top_third = int(h * ( (1 - v_crop_frac) * (1/3) + v_crop_frac))
         h_crop_frac = 0.2
         left = int(w * h_crop_frac)
         right = int(w * (1.0 - h_crop_frac))
-        cropped = rectified[top_third:h, left:right]
+        img_org = img_org[top_third:h, left:right]
 
+        img_org = cv2.GaussianBlur(img_org, (3, 3), 0)
         
-        
-        img = cv2.resize(cropped, (84, 84), interpolation=cv2.INTER_LINEAR)
+        img_org = cv2.resize(img_org, (84, 84), interpolation=cv2.INTER_LINEAR)
         
         if self.grayscale:
-            img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            img_processed = cv2.normalize(img_gray, None, 0, 255, cv2.NORM_MINMAX)
+            img_processed = cv2.cvtColor(img_org, cv2.COLOR_BGR2GRAY)
             img_processed = img_processed[np.newaxis, :, :]
         else:
-            img_processed = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            img_processed = cv2.cvtColor(img_org, cv2.COLOR_BGR2RGB)
             img_processed = img_processed.transpose(2, 0, 1)
             
         return img_processed
@@ -137,9 +137,9 @@ class DuckiebotAgent:
         with torch.no_grad():
             if self.algo_type == "sac":
                 # use mean_action
-                _, _, action = self.actor.get_action(input_tensor)
+                _, _, action = self.actor.get_action(self.input_tensor)
             else:
-                action = self.actor(input_tensor)
+                action = self.actor(self.input_tensor)
         
         current_raw_action = action.cpu().numpy().reshape(-1)
         smoothed_action = (self.alpha * current_raw_action) + ((1.0 - self.alpha) * self.prev_action)
