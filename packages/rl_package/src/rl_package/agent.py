@@ -4,7 +4,7 @@ import numpy as np
 import collections
 import cv2
 import yaml
-from PIL import Image
+import gc
 
 from rl_package.models import SACActor, TD3Actor
 
@@ -28,7 +28,6 @@ class DuckiebotAgent:
         self.img_height = 480
         
         print(f"Loading {self.algo_type.upper()} model from {model_path}...")
-        self.frames = collections.deque(maxlen=frame_stack)
         
         if self.algo_type == "sac":
             self.actor = SACActor(grayscale=self.grayscale).to(self.device)
@@ -40,6 +39,13 @@ class DuckiebotAgent:
         checkpoint = torch.load(model_path, map_location=self.device)
         self.actor.load_state_dict(checkpoint['actor_state_dict'])
         self.actor.eval()
+
+        del checkpoint
+        gc.collect()
+        if self.device.type == "cuda":
+            torch.cuda.empty_cache()
+            
+        print("Model loaded and memory scrubbed.")
 
         self.c = 1 if grayscale else 3
         self.frames = collections.deque(maxlen=frame_stack)
