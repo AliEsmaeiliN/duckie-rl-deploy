@@ -4,6 +4,7 @@ import sys
 import json
 import threading
 import numpy as np
+import cv2
 import rospy
 from duckietown.dtros import DTROS, NodeType, TopicType # pyright: ignore[reportMissingImports]
 from sensor_msgs.msg import CompressedImage # pyright: ignore[reportMissingImports]
