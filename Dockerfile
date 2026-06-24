@@ -52,6 +52,8 @@ ENV DT_MODULE_TYPE="${REPO_NAME}" \
 
 # install apt dependencies
 COPY ./dependencies-apt.txt "${REPO_PATH}/"
+RUN apt-get update || true && apt-get install -y curl && \
+    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key | apt-key add -
 RUN dt-apt-install ${REPO_PATH}/dependencies-apt.txt
 
 # Fix for libcurand.so.10 on DB21J / JetPack 4.6
