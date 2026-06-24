@@ -56,6 +56,11 @@ RUN apt-get update || true && apt-get install -y curl && \
     curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key | apt-key add -
 RUN dt-apt-install ${REPO_PATH}/dependencies-apt.txt
 
+RUN pip3 install wget && \
+    wget https://nvidia.box.com/shared/static/2sv2fv1wseihaw8ym0d4srz41dzljwxh.whl -O onnxruntime_gpu-1.11.0-cp38-cp38-linux_aarch64.whl && \
+    pip3 install onnxruntime_gpu-1.11.0-cp38-cp38-linux_aarch64.whl && \
+    rm onnxruntime_gpu-1.11.0-cp38-cp38-linux_aarch64.whl
+
 # Fix for libcurand.so.10 on DB21J / JetPack 4.6
 ENV LD_LIBRARY_PATH=/usr/local/cuda-10.2/lib64:/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu/tegra:${LD_LIBRARY_PATH}
 ENV PATH=/usr/local/cuda-10.2/bin:/usr/local/cuda/bin:${PATH}

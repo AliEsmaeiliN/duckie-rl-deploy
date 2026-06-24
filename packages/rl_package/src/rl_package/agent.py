@@ -1,62 +1,63 @@
 import os
-import torch
 import numpy as np
 import collections
 import cv2
 import yaml
-import gc
 
-from rl_package.models import SACActor, TD3Actor
+import onnxruntime as ort # pyright: ignore[reportMissingImports]
 
 class DuckiebotAgent:
     def __init__(self, model_path, algo_type="sac", grayscale=True, frame_stack=4, device=None):
-        if device is not None:
-            self.device = torch.device(device)
-        else:
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        print(f" RUNNING ON: {str(self.device).upper()} ")
+        print("\n" + "="*50)
+        print(" RUNNING ON: ONNX (NVIDIA EDGE EXECUTOR ENGINE) ")
+        print("="*50)
             
-        self.algo_type = algo_type.lower()
         self.grayscale = grayscale
         self.frame_stack = frame_stack
         self.prev_action = np.array([0.0, 0.0])
         self.obs_shape = (160, 120)
-        self.alpha = 0.8 # Lower = smoother but more lag
+        self.alpha = 0.8  # Lower = smoother but more lag
         self.tilt_strength = 0.0006
         self.img_width = 640        # Defaults, will be updated by calib
         self.img_height = 480
         
-        print(f"Loading {self.algo_type.upper()} model from {model_path}...")
-        
-        if self.algo_type == "sac":
-            self.actor = SACActor(grayscale=self.grayscale).to(self.device)
-        elif self.algo_type == "td3":
-            self.actor = TD3Actor(grayscale=self.grayscale).to(self.device)
-        else:
-            raise ValueError(f"Unknown algo type: {self.algo_type}")
-
-        checkpoint = torch.load(model_path, map_location=self.device)
-        self.actor.load_state_dict(checkpoint['actor_state_dict'])
-        self.actor.eval()
-
-        del checkpoint
-        gc.collect()
-        if self.device.type == "cuda":
-            torch.cuda.empty_cache()
-            
-        print("Model loaded and memory scrubbed.")
-
         self.c = 1 if grayscale else 3
         self.frames = collections.deque(maxlen=frame_stack)
-        self.input_tensor = torch.zeros(
-            (1, self.c * self.frame_stack, 84, 84), 
-            dtype=torch.float32, 
-            device=self.device
-        )
+
+        if model_path.endswith(".engine") or model_path.endswith(".cleanrl_model"):
+            model_path = model_path.replace(".engine", ".onnx").replace(".cleanrl_model", ".onnx")
+
+        # Dynamic Algorithm Identification based on filename prefix
+        filename = os.path.basename(model_path).lower()
+        if filename.startswith("sac"):
+            self.algo_type = "sac"
+        elif filename.startswith("td3"):
+            self.algo_type = "td3"
+        else:
+            self.algo_type = algo_type.lower()
+
+        print(f"Loading ONNX Model Graph from {model_path}...")
+
+        providers = [
+            ('CUDAExecutionProvider', {
+                'device_id': 0,
+                'arena_extend_strategy': 'kNextPowerOfTwo',
+                'gpu_mem_limit': 2 * 1024 * 1024 * 1024, # Limit to 2GB max allocation safety boundaries
+                'cudnn_conv_algo_search': 'EXHAUSTIVE',
+            }),
+            'CPUExecutionProvider' # Fallback safety layer
+        ]
+
+        # Initialize the acceleration session handler
+        self.session = ort.InferenceSession(model_path, providers=providers)
+        
+        # Extract network layer entry keys dynamically
+        self.input_name = self.session.get_inputs()[0].name
+        self.output_name = self.session.get_outputs()[0].name
 
         self.veh = os.environ.get("VEHICLE_NAME", "duckiebot98")
         self.map_x, self.map_y = self._load_calibration()
+        print(f"ONNX Session successfully bound to GPU Provider: {self.session.get_providers()}")
 
     def _compute_tilt_homography(self):
         """
@@ -67,8 +68,8 @@ class DuckiebotAgent:
         shift = self.tilt_strength * W * H
         src = np.float32([[0, 0], [W, 0], [W, H], [0, H]])
         dst = np.float32([
-            [cx - (cx - 0)     * (1 - self.tilt_strength * H), shift],
-            [cx + (W - cx)     * (1 - self.tilt_strength * H), shift],
+            [cx - (cx - 0) * (1 - self.tilt_strength * H), shift],
+            [cx + (W - cx) * (1 - self.tilt_strength * H), shift],
             [W, H],
             [0, H]
         ])
@@ -86,7 +87,6 @@ class DuckiebotAgent:
         img_width = calib_data['image_width']
         img_height = calib_data['image_height']
 
-
         new_camera_matrix, _ = cv2.getOptimalNewCameraMatrix(
             intrinsics, distortion, (img_width, img_height), 0, (img_width, img_height)
         )
@@ -103,23 +103,19 @@ class DuckiebotAgent:
     
     def preprocess_cv(self, obs_bgr):
         """
-        Replicates the Sim2Real vision pipeline: 
+        Replicates the Sim2Real vision pipeline.
         """
         img_org = cv2.remap(obs_bgr, self.map_x, self.map_y, cv2.INTER_LINEAR)
-        #img_org = cv2.warpPerspective(img_org, self.H_tilt, (self.img_width, self.img_height))
-        
         
         h, w = img_org.shape[:2]
-        
         v_crop_frac = 0.4
-        top_third = int(h * ( (1 - v_crop_frac) * (1/3) + v_crop_frac))
+        top_third = int(h * ((1 - v_crop_frac) * (1/3) + v_crop_frac))
         h_crop_frac = 0.2
         left = int(w * h_crop_frac)
         right = int(w * (1.0 - h_crop_frac))
         img_org = img_org[top_third:h, left:right]
 
         img_org = cv2.GaussianBlur(img_org, (3, 3), 0)
-        
         img_org = cv2.resize(img_org, (84, 84), interpolation=cv2.INTER_LINEAR)
         
         if self.grayscale:
@@ -132,22 +128,12 @@ class DuckiebotAgent:
         return img_processed
 
     def get_action(self):
-        """
-        Handles deterministic inference for the physical robot.
-        """
-
-        # (C*Stack, 84, 84)
         stacked_input = np.concatenate(list(self.frames), axis=0)
-        self.input_tensor.copy_(torch.from_numpy(stacked_input).unsqueeze(0))
+        input_tensor = np.expand_dims(stacked_input, axis=0)
 
-        with torch.no_grad():
-            if self.algo_type == "sac":
-                # use mean_action
-                _, _, action = self.actor.get_action(self.input_tensor)
-            else:
-                action = self.actor(self.input_tensor)
+        raw_outputs = self.session.run([self.output_name], {self.input_name: input_tensor})
         
-        current_raw_action = action.cpu().numpy().reshape(-1)
+        current_raw_action = raw_outputs[0].reshape(-1)
         smoothed_action = (self.alpha * current_raw_action) + ((1.0 - self.alpha) * self.prev_action)
         self.prev_action = smoothed_action.copy()
         return smoothed_action
@@ -155,32 +141,28 @@ class DuckiebotAgent:
     def postprocess_kinematics(self, action):
         """
         Translates [v, omega] to physical Wheel Commands [u_l, u_r].
-        Replicates ActionWrapper and KinematicActionWrapper.
         """
         v_scale = 0.8
         omega_scale = 3
-        v, omega = action[0] * v_scale,  action[1] * omega_scale
+        v, omega = action[0] * v_scale, action[1] * omega_scale
 
-        
         # DB21J physical constants
         radius, wheel_dist, k, gain, trim, limit = 0.0318, 0.102, 27.0, 1.0, -0.05, 1.0
 
-        
         # Kinematic equations
         u_r = ((v + 0.5 * omega * wheel_dist) / radius) * (gain + trim) / k
         u_l = ((v - 0.5 * omega * wheel_dist) / radius) * (gain - trim) / k
 
         if np.abs(u_r) > limit or np.abs(u_l) > limit:
             excess = max(np.abs(u_r), np.abs(u_l))
-            scale  = limit / excess          # uniform scale preserves steering ratio
-            u_r   *= scale
-            u_l   *= scale
+            scale = limit / excess          # uniform scale preserves steering ratio
+            u_r *= scale
+            u_l *= scale
         
         return np.array([u_l, u_r], dtype=np.float32)
     
     def update_buffer(self, processed_frame):
         """Appends the last frame to the stack"""
-
         if len(self.frames) == 0:
             for _ in range(self.frame_stack):
                 self.frames.append(processed_frame)
