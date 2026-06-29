@@ -16,7 +16,7 @@ class DuckiebotAgent:
         self.frame_stack = frame_stack
         self.prev_action = np.array([0.0, 0.0])
         self.obs_shape = (160, 120)
-        self.alpha = 0.8  # Lower = smoother but more lag
+        self.alpha = 0.5  # Lower = smoother but more lag
         self.tilt_strength = 0.0006
         self.img_width = 640        # Defaults, will be updated by calib
         self.img_height = 480
