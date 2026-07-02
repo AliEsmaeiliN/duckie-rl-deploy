@@ -73,7 +73,7 @@ class RLNode(DTROS):
         """Flushes the temporal history buffer to prevent structural jerks."""
         if hasattr(self.agent, 'frames') and self.agent.frames is not None:
             self.agent.frames.clear()
-            rospy.logdebug("Agent observation history cleared.")
+            rospy.loginfo("Agent observation history cleared.")
 
     def unified_command_callback(self, msg):
         """Handles all state changes and hot-swaps via incoming JSON payloads."""
@@ -89,10 +89,12 @@ class RLNode(DTROS):
                 self.active = False
                 self.write("wheels", [0.0, 0.0])
                 self.clear_frame_history()
+                self.last_obs = None
                 rospy.loginfo("RL Policy Execution: PAUSED. Emergency brakes applied.")
             
             elif cmd == "resume":
                 self.clear_frame_history() # Clean slate for the sudden acceleration sequence
+                self.last_obs = None
                 self.active = True
                 rospy.loginfo("RL Policy Execution: RESUMED.")
             
@@ -107,7 +109,6 @@ class RLNode(DTROS):
                 try:
                     self.load_agent_model(new_model_ver)
                     rospy.loginfo(f"Successfully transitioned network weights to version {new_model_ver}")
-                    # Keep it paused after swap for safety; requires an explicit 'resume' command from the CLI
                     rospy.loginfo("Agent is currently PAUSED with new weights. Send 'resume' to drive.")
                 except Exception as e:
                     rospy.logerr(f"Failed to hot-swap model cleanly: {e}")
